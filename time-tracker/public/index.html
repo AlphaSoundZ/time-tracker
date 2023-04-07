@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker</title>
+    <script type="module" src="app.ts"></script>
+    <script type="module">
+        import { faker } from "https://cdn.skypack.dev/@faker-js/faker";
+        window.faker = faker;
+    </script>
+</head>
+<body>
+    <h1>Time Tracker</h1>
+
+    <!-- signin with google section -->
+    <div id="signin">
+        <button id="signin-button">Sign in with Google</button>
+    </div>
+    <div>
+        <button id="signout-button">Sign out</button>
+    </div>
+
+    <!-- main section -->
+    <div id="main" style="display: none;">
+        <div id="user-info">
+            <img id="user-photo" src="" alt="user photo">
+            <span id="user-email"></span>
+            <button id="signout-button">Sign out</button>
+        </div>
+
+        <div id="time-entries"></div>
+
+        <div id="new-entry">
+            <input type="text" id="description" placeholder="Description">
+            <input type="number" id="hours" placeholder="Hours">
+            <input type="number" id="minutes" placeholder="Minutes">
+            <button id="add-button">Add</button>
+    </div>
+</body>
+</html>
