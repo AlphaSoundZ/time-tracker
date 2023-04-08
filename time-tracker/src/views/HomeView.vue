@@ -21,7 +21,7 @@ export default {
       supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://alphasoundz.github.io/time-tracker/'
+          redirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL
         }
       }
       )
