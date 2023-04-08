@@ -34,25 +34,25 @@ export default {
       const signinButton = document.getElementById('loginBtn')
       const logoutButton = document.getElementById('logoutBtn')
 
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        this.user_name = user.user_metadata.full_name
-
-        if (signinButton && logoutButton) {
-          signinButton.style.display = 'none'
-          logoutButton.style.display = 'block'
+      // check if user is logged in
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          const user = session?.user
+          if (user) {
+            this.user_name = user?.user_metadata.full_name
+            if (signinButton && logoutButton) {
+              signinButton.style.display = 'none'
+              logoutButton.style.display = 'block'
+            }
+          } else {
+            this.user_name = 'Guest'
+            if (signinButton && logoutButton) {
+              signinButton.style.display = 'block'
+              logoutButton.style.display = 'none'
+            }
+          }
         }
-      } else {
-        this.user_name = 'Guest'
-
-        if (signinButton && logoutButton) {
-          signinButton.style.display = 'block'
-          logoutButton.style.display = 'none'
-        }
-      }
+      )
     }
   },
   async mounted() {

@@ -65,16 +65,24 @@ function getDate(tracking: TrackingData) {
   return startDate
 }
 
-onMounted(() => {
-  getTrackings()
+onMounted(async () => {
+	const {
+        data: { user }
+      } = await supabase.auth.getUser()
 
-  // subscribe to realtime updates
-  supabase
-    .channel('any')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, (payload) => {
-      console.log('Change received!', payload)
-    })
-    .subscribe()
+      if (user) {
+				getTrackings()
+
+				// subscribe to realtime updates
+				supabase
+					.channel('any')
+					.on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, (payload) => {
+						console.log('Change received!', payload)
+					})
+					.subscribe()
+			} else {
+				console.log('not logged in')
+			}
 })
 </script>
 
