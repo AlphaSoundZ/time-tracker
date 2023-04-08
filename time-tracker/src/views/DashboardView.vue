@@ -88,7 +88,7 @@ onMounted(async () => {
 
 <template>
   <div class="container">
-    <h1 class="title">Time Tracker</h1>
+    <h1>Dashboard</h1>
     <table class="table">
       <thead>
         <tr>
@@ -113,6 +113,11 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+h1 {
+  font-weight: 500;
+  font-size: 2.6rem;
+  top: -10px;
+}
 .title {
   text-align: center;
   margin-bottom: 2rem;

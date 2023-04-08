@@ -1,11 +1,12 @@
 <template>
   <header>
-    <img class="logo" src="/src/assets/stopwatch_logo.svg" width="125" height="125" />
+    <img class="logo" src="./assets/stopwatch_logo.svg" width="125" height="125" />
 
     <div class="wrapper">
       <nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/dashboard">Dashboard</RouterLink>
+        <RouterLink to="/track">Track</RouterLink>
       </nav>
     </div>
   </header>
