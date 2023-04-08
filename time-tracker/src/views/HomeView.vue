@@ -5,7 +5,8 @@
     <a href="#" id="logoutBtn">Logout</a>
   </main>
 </template>
-<script>
+
+<script lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 
@@ -40,13 +41,17 @@ export default {
       if (user) {
         this.user_name = user.user_metadata.full_name
 
-        signinButton.style.display = 'none'
-        logoutButton.style.display = 'block'
+        if (signinButton && logoutButton) {
+          signinButton.style.display = 'none'
+          logoutButton.style.display = 'block'
+        }
       } else {
         this.user_name = 'Guest'
 
-        signinButton.style.display = 'block'
-        logoutButton.style.display = 'none'
+        if (signinButton && logoutButton) {
+          signinButton.style.display = 'block'
+          logoutButton.style.display = 'none'
+        }
       }
     }
   },
@@ -54,8 +59,8 @@ export default {
     const signinButton = document.getElementById('loginBtn')
     const logoutButton = document.getElementById('logoutBtn')
 
-    logoutButton.addEventListener('click', this.signOut)
-    signinButton.addEventListener('click', this.signIn)
+    logoutButton?.addEventListener('click', this.signOut)
+    signinButton?.addEventListener('click', this.signIn)
 
     this.updateUI()
   }

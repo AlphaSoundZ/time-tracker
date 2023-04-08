@@ -1,16 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 //import { createClient } from "@supabase/supabase-js";
 import { supabase } from '../lib/supabaseClient'
+import { track } from '@vue/reactivity';
 
-const trackings = ref([])
+interface TrackingData {
+	id: number;
+	title: string;
+	start: string | number | Date;
+	end?: string | number | Date;
+}
+
+const trackings = ref<TrackingData[]>([]);
 
 async function getTrackings() {
   const { data } = await supabase.from('trackings').select()
-  trackings.value = data
+	trackings.value = data as TrackingData[];
 }
 
-function duration(tracking) {
+function duration(tracking : TrackingData) {
   // if tracking has not ended, return "in progress"
   if (!tracking.end) {
     return 'in progress'
@@ -19,7 +27,7 @@ function duration(tracking) {
   // calculate duration
   const start = new Date(tracking.start)
   const end = new Date(tracking.end)
-  const duration = end - start
+	const duration = end.getTime() - start.getTime()
 
   // convert duration to hours, minutes, seconds
   const hours = Math.floor(duration / 1000 / 60 / 60)
@@ -34,14 +42,14 @@ function duration(tracking) {
   return formattedDuration
 }
 
-function formatTime(time) {
+function formatTime(time: TrackingData['start']) {
   if (!time) return
 
-  // retrun time only
+  // return time only
   return new Date(time).toLocaleTimeString().split(' ')[0]
 }
 
-function getDate(tracking) {
+function getDate(tracking: TrackingData) {
   let startDate = new Date(tracking.start).toLocaleDateString()
 
   if (tracking.end) {
@@ -88,7 +96,7 @@ onMounted(() => {
           <td>{{ tracking.title }}</td>
           <td>{{ getDate(tracking) }}</td>
           <td>{{ formatTime(tracking.start) }}</td>
-          <td>{{ formatTime(tracking.end) }}</td>
+          <td>{{ tracking.end ? formatTime(tracking.end) : "" }}</td>
           <td>{{ duration(tracking) }}</td>
         </tr>
       </tbody>
