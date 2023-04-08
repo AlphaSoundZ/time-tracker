@@ -1,9 +1,9 @@
 <template>
-  <main>
+  <div class="container">
     <h1>Welcome {{ user_name }}!</h1>
-    <a href="#" id="loginBtn" @click="signIn">Google Sign-In</a>
-    <a href="#" id="logoutBtn">Logout</a>
-  </main>
+    <a href="#" id="loginBtn" >Google Sign-In</a>
+    <a href="#" id="logoutBtn" >Logout</a>
+  </div>
 </template>
 
 <script lang="ts">
@@ -81,15 +81,13 @@ h3 {
   font-size: 1.2rem;
 }
 
-.greetings h1,
-.greetings h3 {
-  text-align: center;
+a :hover {
+  background-color: transparent;
 }
 
-@media (min-width: 1024px) {
-  .greetings h1,
-  .greetings h3 {
-    text-align: left;
-  }
+a {
+  display: inline-block;
+  padding: 0.5rem;
+  width: fit-content;
 }
 </style>

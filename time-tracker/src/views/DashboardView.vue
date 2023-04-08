@@ -180,7 +180,8 @@ onMounted(async () => {
     </div>
 
     <!-- test button to add element -->
-    <button @click="addElement()">Add Tracking</button>
+    <br>
+    <a href="#" @click="addElement()">Add Tracking</a>
   </div>
 </template>
 
@@ -208,5 +209,14 @@ h1 {
 
 .table th {
   background: #0a0a0a;
+}
+
+a :hover {
+  background-color: transparent;
+}
+
+a {
+  display: inline-block;
+  padding: 0.5rem;
 }
 </style>
