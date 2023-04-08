@@ -1,64 +1,72 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from 'vue'
 //import { createClient } from "@supabase/supabase-js";
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient'
 
 const trackings = ref([])
 
 async function getTrackings() {
-  const { data } = await supabase.from('trackings').select();
-  trackings.value = data;
+  const { data } = await supabase.from('trackings').select()
+  trackings.value = data
 }
 
 function duration(tracking) {
   // if tracking has not ended, return "in progress"
   if (!tracking.end) {
-    return "in progress";
+    return 'in progress'
   }
 
   // calculate duration
-  const start = new Date(tracking.start);
-  const end = new Date(tracking.end);
-  const duration = end - start;
+  const start = new Date(tracking.start)
+  const end = new Date(tracking.end)
+  const duration = end - start
 
   // convert duration to hours, minutes, seconds
-  const hours = Math.floor(duration / 1000 / 60 / 60);
-  const minutes = Math.floor(duration / 1000 / 60) % 60;
-  const seconds = Math.floor(duration / 1000) % 60;
+  const hours = Math.floor(duration / 1000 / 60 / 60)
+  const minutes = Math.floor(duration / 1000 / 60) % 60
+  const seconds = Math.floor(duration / 1000) % 60
 
   // format duration
   const formattedDuration = [hours, minutes, seconds]
     .map((unit) => String(unit).padStart(2, '0'))
-    .join(':');
+    .join(':')
 
-  return formattedDuration;
+  return formattedDuration
 }
 
 function formatTime(time) {
-  if (!time) return;
-  
+  if (!time) return
+
   // retrun time only
-  return new Date(time).toLocaleTimeString().split(' ')[0];
+  return new Date(time).toLocaleTimeString().split(' ')[0]
 }
 
 function getDate(tracking) {
-  let startDate = new Date(tracking.start).toLocaleDateString();
+  let startDate = new Date(tracking.start).toLocaleDateString()
 
   if (tracking.end) {
-    let endDate = new Date(tracking.end).toLocaleDateString();
+    let endDate = new Date(tracking.end).toLocaleDateString()
 
     if (startDate === endDate) {
-      return startDate;
+      return startDate
     } else {
-      return `${startDate} - ${endDate}`;
+      return `${startDate} - ${endDate}`
     }
   }
 
-  return startDate;
+  return startDate
 }
 
 onMounted(() => {
-  getTrackings();
+  getTrackings()
+
+  // subscribe to realtime updates
+  supabase
+    .channel('any')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, (payload) => {
+      console.log('Change received!', payload)
+    })
+    .subscribe()
 })
 </script>
 
@@ -68,7 +76,7 @@ onMounted(() => {
     <table class="table">
       <thead>
         <tr>
-          <th>User</th>
+          <th>Title</th>
           <th>Date</th>
           <th>Start</th>
           <th>End</th>
@@ -77,7 +85,7 @@ onMounted(() => {
       </thead>
       <tbody>
         <tr v-for="tracking in trackings" :key="tracking.id">
-          <td>{{ tracking.user_id }}</td>
+          <td>{{ tracking.title }}</td>
           <td>{{ getDate(tracking) }}</td>
           <td>{{ formatTime(tracking.start) }}</td>
           <td>{{ formatTime(tracking.end) }}</td>
@@ -99,7 +107,8 @@ onMounted(() => {
   border-collapse: collapse;
 }
 
-.table th, .table td {
+.table th,
+.table td {
   border: 1px solid #3e3e3e;
   padding: 0.5rem;
 }
