@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 //import { createClient } from "@supabase/supabase-js";
 import { supabase } from '../lib/supabaseClient'
 import { track } from '@vue/reactivity';
@@ -130,6 +130,7 @@ onMounted(async () => {
 
 
 })
+
 </script>
 
 <template>
