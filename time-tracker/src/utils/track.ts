@@ -1,8 +1,10 @@
 export class Track {
   supabase: any;
+  currentTrackingId: string | null;
 
   constructor(supabase: any) {
     this.supabase = supabase;
+    this.currentTrackingId = null;
   }
   
   async add(title: string | null, start: Date, end: Date | null) {
@@ -20,6 +22,14 @@ export class Track {
         user: user?.id
       }
     ])
+
+    // upadte current tracking id
+    if (insertData && insertData.length == 1) {
+      this.currentTrackingId = insertData[0].id
+    } else {
+      this.currentTrackingId = null
+    }
+    
     return { data: insertData, error: insertError }
   }
 
@@ -36,13 +46,21 @@ export class Track {
     const { data: selectData, error: selectError } = await this.supabase.from('trackings').select('id').eq('user', user?.id).is('end', null)
     if (selectData && selectData.length == 1) {
       const { data: updateData, error: updateError } = await this.supabase.from('trackings').update({ end: formattedEnd }).eq('id', selectData[0].id)
+
+      // upadte current tracking id
+      if (updateData && updateData.length == 1) {
+        this.currentTrackingId = updateData[0].id
+      } else {
+        this.currentTrackingId = null
+      }
+      
       return { data: updateData, error: updateError }
     } else {
       return { data: null, error: 'No tracking to stop' }
     }
   }
 
-  async getCurrentTrackingStartTime() {
+  async getCurrentStartTime() {
     const user: any = await this.checkSession();
     if (!user) return { date: null, error: 'User not logged in' }
 
@@ -62,5 +80,4 @@ export class Track {
     if (!data) return false
     else return data.session?.user
   }
-
 }

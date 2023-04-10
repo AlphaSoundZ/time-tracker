@@ -18,7 +18,9 @@ import { Track } from '@/utils/track'
 
 import topbar from 'topbar'
 
-let intervalType: any = null;
+let intervalType: any = null
+
+let subscription: any = null
 
 export default {
     name: 'TrackView',
@@ -41,41 +43,95 @@ export default {
 
         if (isIntervalRunning) {
           // stop tracking
-          this.stopInterval();
-          this.trackingTime = '00:00:00'
-
-          trackingButton.innerHTML = 'Start Tracking';
-
-          track.stop(now).then((data) => {
-            if (data.error) {
-              console.log(data.error)
-            }
-
-            console.log("tracking stopped!")
-
-            topbar.hide()
-            return
-          });
-        }
-        else {
-          // start tracking
-          this.startInterval(now);
           
+          this.stopTracking().then(() => {
+            topbar.hide()
+          })
+        } else {
+          // start tracking
+          
+          this.startTracking().then(() => {
+            topbar.hide()
+          })
+        }
+
+        return
+      },
+      async startTracking() {
+        const now = new Date()
+        const track = new Track(supabase)
+        const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+
+
+        this.startInterval(now);
+        
+        // change button text
+        trackingButton.innerHTML = 'Stop Tracking';
+        
+        await track.start("tracking!", now).then((data) => {
+          if (data.error) {
+            console.log(data.error)
+
+            // change button text
+            trackingButton.innerHTML = 'Start Tracking';
+
+            // stop interval
+            this.stopInterval()
+          } else {
+            console.log("tracking started!")
+          }
+
+          return
+        });
+        return
+      },
+      async stopTracking() {
+        const now = new Date()
+        const track = new Track(supabase)
+        const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+
+        this.stopInterval();
+        this.trackingTime = '00:00:00'
+
+        // change button text
+        trackingButton.innerHTML = 'Start Tracking';
+
+        await track.stop(now).then((data) => {
+          if (data.error) {
+            console.log(data.error)
+          }
+
+          console.log("tracking stopped!")
+          return
+        });
+        return
+      },
+      async updateTracking() {
+        const track = new Track(supabase)
+        const { date, error } = await track.getCurrentStartTime()
+
+        if (error) {
+          console.log(error)
+          return
+        }
+
+        const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+
+        if (date && !this.isIntervalRunning()) {
+          this.startInterval(date)
+
           // change button text
           trackingButton.innerHTML = 'Stop Tracking';
-          
-          await track.start("tracking!", now).then((data) => {
-            if (data.error) {
-              console.log(data.error)
-            }
+        } else if (!date && this.isIntervalRunning()) {
+          // reset tracking time
+          this.trackingTime = '00:00:00'
 
-            console.log("tracking started!")
+          // stop interval
+          this.stopInterval()
 
-            topbar.hide()
-            return
-          });
+          // change button text
+          trackingButton.innerHTML = 'Start Tracking';
         }
-
       },
       startInterval(start: Date) {
         // render at start time
@@ -121,7 +177,7 @@ export default {
     },
     async mounted() {
       const track = new Track(supabase)
-      const { date, error } = await track.getCurrentTrackingStartTime()
+      const { date, error } = await track.getCurrentStartTime()
 
       if (error) {
         console.log(error)
@@ -137,6 +193,13 @@ export default {
       } else {
         this.trackingTime = '00:00:00'
       }
+
+      subscription = supabase
+        .channel('public:trackings')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
+          this.updateTracking()
+        })
+        .subscribe()
 
       topbar.hide()
     },

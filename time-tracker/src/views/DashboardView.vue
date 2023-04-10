@@ -22,13 +22,14 @@ const trackings = ref<TrackingData[]>([]);
 async function getTrackings() {
   const { data } = await supabase.from('trackings').select()
 	trackings.value = data as TrackingData[];
-
+  
   // subribe to realtime updates
   supabase
-    .channel('any')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, (payload) => {
-      // update trackings
-      getTrackings()
+  .channel('any')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
+    // update trackings
+    const { data } = await supabase.from('trackings').select()
+    trackings.value = data as TrackingData[];
     })
     .subscribe()
 }
