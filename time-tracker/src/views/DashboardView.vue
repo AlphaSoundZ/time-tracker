@@ -6,8 +6,6 @@ import { track } from '@vue/reactivity';
 import { format } from 'path';
 import { userInfo } from 'os';
 
-import { faker } from "https://cdn.skypack.dev/@faker-js/faker";
-
 import topbar from 'topbar'
 
 interface TrackingData {
@@ -32,34 +30,6 @@ async function getTrackings() {
     trackings.value = data as TrackingData[];
     })
     .subscribe()
-}
-
-async function addElement() {
-
-  const { data, error } = await supabase.auth.getSession();
-  // if user is not logged in, return
-  if (!data) return
-  const user = data.session?.user;
-  
-  // Random tracking title
-  const randomTitle = faker.lorem.words(3)
-
-  const randomStart = new Date(
-    new Date().getTime() - Math.floor(Math.random() * 10000000000)
-  ).toISOString()
-
-  const randomEnd = new Date(
-    new Date(randomStart).getTime() + Math.floor(Math.random() * 50000000)
-  ).toISOString()
-
-  await supabase.from('trackings').insert([
-    {
-      title: randomTitle,
-      start: randomStart,
-      end: randomEnd,
-      user: user?.id
-    }
-  ])
 }
 
 function duration(tracking: TrackingData) {
@@ -181,7 +151,6 @@ onMounted(async () => {
 
     <!-- test button to add element -->
     <br>
-    <a href="#" @click="addElement()">Add Tracking</a>
   </div>
 </template>
 

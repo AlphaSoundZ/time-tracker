@@ -77,6 +77,9 @@ export default {
 
             // stop interval
             this.stopInterval()
+
+            // reset tracking time
+            this.trackingTime = '--:--:--'
           } else {
             console.log("tracking started!")
           }
@@ -181,6 +184,7 @@ export default {
 
       if (error) {
         console.log(error)
+        topbar.hide()
         return
       }
 
