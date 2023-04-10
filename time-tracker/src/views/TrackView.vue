@@ -16,73 +16,104 @@ import { supabase } from '../lib/supabaseClient'
 
 import { Track } from '@/utils/track'
 
+import topbar from 'topbar'
+
+let intervalType: any = null;
+
 export default {
     name: 'TrackView',
     data() {
         return {
-            trackingTime: '00:00:00',
-            intervalId: setInterval(() => { }, 1000)
+            trackingTime: '',
+            intervalId: intervalType
         }
     },
     methods: {
       async toggleTracking() {
+        topbar.show()
+        
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
         const track = new Track(supabase)
         const now = new Date()
 
         // get current tracking
-        const { date, error } = await track.getCurrentTrackingStartTime()
-        
-        if (error) {
-          console.log(error)
-          return
-        }
+        const isIntervalRunning = this.isIntervalRunning()
 
-        if (date) {
+        if (isIntervalRunning) {
           // stop tracking
-          const updateData = await track.stop(now);
-
-          if (updateData.error) {
-            console.log(updateData.error)
-            return
-          }
-
-          // stop interval
-          this.stopIntervall();
+          this.stopInterval();
           this.trackingTime = '00:00:00'
 
           trackingButton.innerHTML = 'Start Tracking';
-          return
+
+          track.stop(now).then((data) => {
+            if (data.error) {
+              console.log(data.error)
+            }
+
+            console.log("tracking stopped!")
+
+            topbar.hide()
+            return
+          });
         }
         else {
           // start tracking
-          const result = await track.start("tracking!", now)
-          this.startIntervall(now);
+          this.startInterval(now);
+          
+          // change button text
+          trackingButton.innerHTML = 'Stop Tracking';
+          
+          await track.start("tracking!", now).then((data) => {
+            if (data.error) {
+              console.log(data.error)
+            }
+
+            console.log("tracking started!")
+
+            topbar.hide()
+            return
+          });
         }
 
-        // change button text
-        trackingButton.innerHTML = 'Stop Tracking';
       },
-      startIntervall(start: Date) {
+      startInterval(start: Date) {
+        // render at start time
+        const now = new Date()
+        const diff = now.getTime() - start.getTime()
+        const diffDate = new Date(diff)
+        this.trackingTime = this.formatDate(diffDate)
+
+        // start interval
         this.intervalId = setInterval(() => {
           const now = new Date()
           const diff = now.getTime() - start.getTime()
           const diffDate = new Date(diff)
 
-          // format time
-          const hours = diffDate.getUTCHours().toString().padStart(2, '0')
-          const minutes = diffDate.getUTCMinutes().toString().padStart(2, '0')
-          const seconds = diffDate.getUTCSeconds().toString().padStart(2, '0')
-
-          this.trackingTime = `${hours}:${minutes}:${seconds}`
+          this.trackingTime = this.formatDate(diffDate)
         }, 1000)
       },
-      stopIntervall() {
+      stopInterval() {
         clearInterval(this.intervalId)
+        this.intervalId = null
+      },
+      isIntervalRunning() {
+        return this.intervalId != null
+      },
+      formatDate(diffDate: Date) {
+
+        // format time
+        const hours = diffDate.getUTCHours().toString().padStart(2, '0')
+        const minutes = diffDate.getUTCMinutes().toString().padStart(2, '0')
+        const seconds = diffDate.getUTCSeconds().toString().padStart(2, '0')
+
+        return `${hours}:${minutes}:${seconds}`
       }
     },
     setup() {
-      const trackingTime = ref('00:00:00')
+      const trackingTime = ref('--:--:--')
+
+      topbar.show()
 
       return {
         trackingTime
@@ -98,12 +129,16 @@ export default {
       }
 
       if (date) {
-        this.startIntervall(date)
+        this.startInterval(date)
 
         // change button text
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
         trackingButton.innerHTML = 'Stop Tracking';
+      } else {
+        this.trackingTime = '00:00:00'
       }
+
+      topbar.hide()
     },
 }
 

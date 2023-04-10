@@ -8,6 +8,8 @@ import { userInfo } from 'os';
 
 import { faker } from "https://cdn.skypack.dev/@faker-js/faker";
 
+import topbar from 'topbar'
+
 interface TrackingData {
 	id: number;
 	title: string;
@@ -113,19 +115,15 @@ function getDate(tracking: TrackingData) {
 }
 
 onMounted(async () => {
+  topbar.show()
+  
   const { data, error } = await supabase.auth.getSession();
   // if user is not logged in, return
   if (data) {
     const user = data.session?.user;
-    getTrackings()
-
-    // subscribe to realtime updates
-    supabase
-      .channel('any')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, (payload) => {
-        console.log('Change received!', payload)
-      })
-      .subscribe()
+    getTrackings().then(() => {
+      topbar.hide()
+    })
   }
 
 

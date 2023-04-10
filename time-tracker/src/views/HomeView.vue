@@ -10,6 +10,8 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 
+import topbar from 'topbar'
+
 export default {
   data() {
     return {
@@ -60,13 +62,17 @@ export default {
     }
   },
   async mounted() {
+    topbar.show()
+    
     const signinButton = document.getElementById('loginBtn')
     const logoutButton = document.getElementById('logoutBtn')
 
     logoutButton?.addEventListener('click', this.signOut)
     signinButton?.addEventListener('click', this.signIn)
 
-    this.updateUI()
+    this.updateUI().then(() => {
+      topbar.hide()
+    })
   }
 }
 </script>
