@@ -1,11 +1,14 @@
 <template>
     <main>
         <h1 class="title">Current Tracking</h1>
-        <!-- current tracking duration -->
-        <div>
-            <h3 id="trackingTime">{{ trackingTime }}</h3>
+
+        <!-- tracking title textfield -->
+        <div class="tracking-container">
+          <div class="tracking-title-container">
+            <input class="tracking-title" type="text" placeholder="Title" id="titleInput" @change="updateTitle">
+          </div>
+          <h3 class="tracking-time" id="trackingTime">{{ trackingTime }}</h3>
         </div>
-        <br>
         <a id="trackingToggle" class="button is-primary" href="#" @click="toggleTracking">Start Tracking</a>
     </main>
 </template>
@@ -61,6 +64,7 @@ export default {
         const now = new Date()
         const track = new Track(supabase)
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
 
 
         this.startInterval(now);
@@ -68,7 +72,7 @@ export default {
         // change button text
         trackingButton.innerHTML = 'Stop Tracking';
         
-        await track.start("tracking!", now).then((data) => {
+        await track.start(titleInput.value, now).then((data) => {
           if (data.error) {
             console.log(data.error)
 
@@ -92,9 +96,11 @@ export default {
         const now = new Date()
         const track = new Track(supabase)
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
 
         this.stopInterval();
         this.trackingTime = '00:00:00'
+        titleInput.value = ''
 
         // change button text
         trackingButton.innerHTML = 'Start Tracking';
@@ -109,9 +115,10 @@ export default {
         });
         return
       },
-      async updateTracking() {
+      async updateTracking(params: any) { // handle tracking changes
         const track = new Track(supabase)
-        const { date, error } = await track.getCurrentStartTime()
+        const { data, error } = await track.getCurrentTracking()
+        const date = data?.start ? new Date(data.start) : null
 
         if (error) {
           console.log(error)
@@ -119,21 +126,35 @@ export default {
         }
 
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
 
-        if (date && !this.isIntervalRunning()) {
+        console.log(params)
+
+        if (date && !this.isIntervalRunning()) { // tracking has changed to running
+          console.log("tracking has changed to running")
           this.startInterval(date)
 
           // change button text
           trackingButton.innerHTML = 'Stop Tracking';
-        } else if (!date && this.isIntervalRunning()) {
-          // reset tracking time
+        } else if (!date && this.isIntervalRunning()) { // tracking has changed to stopped
+          console.log("tracking has changed to stopped")
+          // reset tracking time and title
           this.trackingTime = '00:00:00'
+          titleInput.value = ''
 
           // stop interval
           this.stopInterval()
 
           // change button text
           trackingButton.innerHTML = 'Start Tracking';
+
+          // reset tracking title
+          titleInput.value = ''
+        }
+
+        if (this.isIntervalRunning()) {
+          // update title only if tracking is running
+          titleInput.value = params.title?.toString() || ''
         }
       },
       startInterval(start: Date) {
@@ -167,6 +188,13 @@ export default {
         const seconds = diffDate.getUTCSeconds().toString().padStart(2, '0')
 
         return `${hours}:${minutes}:${seconds}`
+      },
+      async updateTitle() {
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
+        const track = new Track(supabase)
+
+        const result = await track.update({title: titleInput.value}, null)
+        console.log(result)
       }
     },
     setup() {
@@ -180,7 +208,8 @@ export default {
     },
     async mounted() {
       const track = new Track(supabase)
-      const { date, error } = await track.getCurrentStartTime()
+      const { data, error } = await track.getCurrentTracking()
+      const date = data?.start ? new Date(data.start) : null
 
       if (error) {
         console.log(error)
@@ -188,20 +217,17 @@ export default {
         return
       }
 
-      if (date) {
-        this.startInterval(date)
-
-        // change button text
-        const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
-        trackingButton.innerHTML = 'Stop Tracking';
-      } else {
+      if (!date) {
         this.trackingTime = '00:00:00'
       }
+
+      this.updateTracking(data)
 
       subscription = supabase
         .channel('public:trackings')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
-          this.updateTracking()
+          // only new values
+          this.updateTracking(payload.new)
         })
         .subscribe()
 
@@ -236,10 +262,44 @@ h3 {
 
 a :hover {
   background-color: transparent;
+
+  color: #fff;
 }
 
 a {
   display: inline-block;
   padding: 0.5rem;
 }
+
+input:focus {
+  outline: none;
+}
+
+.tracking-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tracking-title-container {
+  flex: 1;
+}
+
+.tracking-time {
+  font-family: Courier bold, monospace;
+  font-size: 2rem;
+  font-weight: 500;
+  width: min-content;
+  margin-left: 5%;
+}
+
+.tracking-title {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
 </style>

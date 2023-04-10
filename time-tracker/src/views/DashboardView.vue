@@ -18,7 +18,7 @@ interface TrackingData {
 const trackings = ref<TrackingData[]>([]);
 
 async function getTrackings() {
-  const { data } = await supabase.from('trackings').select()
+  const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
 	trackings.value = data as TrackingData[];
   
   // subribe to realtime updates
@@ -26,7 +26,7 @@ async function getTrackings() {
   .channel('any')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
     // update trackings
-    const { data } = await supabase.from('trackings').select()
+    const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
     trackings.value = data as TrackingData[];
     })
     .subscribe()

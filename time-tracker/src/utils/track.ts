@@ -23,7 +23,7 @@ export class Track {
       }
     ])
 
-    // upadte current tracking id
+    // update current tracking id
     if (insertData && insertData.length == 1) {
       this.currentTrackingId = insertData[0].id
     } else {
@@ -47,7 +47,7 @@ export class Track {
     if (selectData && selectData.length == 1) {
       const { data: updateData, error: updateError } = await this.supabase.from('trackings').update({ end: formattedEnd }).eq('id', selectData[0].id)
 
-      // upadte current tracking id
+      // update current tracking id
       if (updateData && updateData.length == 1) {
         this.currentTrackingId = updateData[0].id
       } else {
@@ -74,10 +74,38 @@ export class Track {
     }
   }
 
+  async getCurrentTracking() {
+    const user: any = await this.checkSession();
+    if (!user) return { data: null, error: 'User not logged in' }
+
+    const { data: selectData, error: selectError } = await this.supabase.from('trackings').select().eq('user', user?.id).is('end', null)
+
+    if (selectData && selectData.length > 0) {
+      return { data: selectData[0], error: null }
+    } else {
+      return { data: null, error: null }
+    }
+  }
+
   async checkSession() {
     const { data, error } = await this.supabase.auth.getSession();
     // if user is not logged in, return
     if (!data) return false
     else return data.session?.user
+  }
+
+  async update(object: Object, id: string | null) {
+    const user: any = await this.checkSession();
+    if (!user) return { data: null, error: 'User not logged in' }
+
+    id = id || this.currentTrackingId || (await this.getCurrentTracking()).data?.id
+
+    if (id) {
+      const { data: updateData, error: updateError } = await this.supabase.from('trackings').update(object).eq('id', id)
+      
+      return { data: updateData, error: updateError }
+    } else {
+      return { data: null, error: 'No tracking to update' }
+    }
   }
 }
