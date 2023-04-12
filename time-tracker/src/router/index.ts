@@ -21,6 +21,15 @@ const router = createRouter({
       path: '/track',
       name: 'track',
       component: () => import('../views/TrackView.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*', // catch all
+      name: 'not-found',
+      component: () => HomeView,
+      // change url to home
+      beforeEnter: (to, from, next) => {
+        next({ name: 'home' })
+      }
     }
   ]
 })

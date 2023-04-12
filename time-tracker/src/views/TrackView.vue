@@ -102,6 +102,9 @@ export default {
         this.trackingTime = '00:00:00'
         titleInput.value = ''
 
+        // sessionStorage of tracking title
+        sessionStorage.removeItem('trackingTitle')
+
         // change button text
         trackingButton.innerHTML = 'Start Tracking';
 
@@ -128,8 +131,6 @@ export default {
         const trackingButton = document.getElementById('trackingToggle') as HTMLAnchorElement
         const titleInput = document.getElementById('titleInput') as HTMLInputElement
 
-        console.log(params)
-
         if (date && !this.isIntervalRunning()) { // tracking has changed to running
           console.log("tracking has changed to running")
           this.startInterval(date)
@@ -142,19 +143,26 @@ export default {
           this.trackingTime = '00:00:00'
           titleInput.value = ''
 
+          // sessionStorage of tracking title
+          sessionStorage.removeItem('trackingTitle')
+
           // stop interval
           this.stopInterval()
 
           // change button text
           trackingButton.innerHTML = 'Start Tracking';
-
-          // reset tracking title
-          titleInput.value = ''
         }
 
         if (this.isIntervalRunning()) {
           // update title only if tracking is running
           titleInput.value = params.title?.toString() || ''
+
+          // sessionStorage of tracking title
+          sessionStorage.setItem('trackingTitle', titleInput.value)
+        }
+        else {
+          // update title from session storage
+          titleInput.value = sessionStorage.getItem('trackingTitle') || ''
         }
       },
       startInterval(start: Date) {
@@ -193,8 +201,10 @@ export default {
         const titleInput = document.getElementById('titleInput') as HTMLInputElement
         const track = new Track(supabase)
 
+        // sessionStorage of tracking title
+        sessionStorage.setItem('trackingTitle', titleInput.value)
+        
         const result = await track.update({title: titleInput.value}, null)
-        console.log(result)
       }
     },
     setup() {
@@ -284,13 +294,13 @@ input:focus {
 
 .tracking-title-container {
   flex: 1;
+  min-width: 50%;
 }
 
 .tracking-time {
   font-family: Courier bold, monospace;
   font-size: 2rem;
   font-weight: 500;
-  width: min-content;
   margin-left: 5%;
 }
 
