@@ -1,8 +1,8 @@
 <template>
   <div class="container">
     <h1>Welcome {{ user_name }}!</h1>
-    <a href="#" id="loginBtn" >Google Sign-In</a>
-    <a href="#" id="logoutBtn" >Logout</a>
+    <a href="#" id="loginBtn" style="display: none">Google Sign-In</a>
+    <a href="#" id="logoutBtn" style="display: none">Logout</a>
   </div>
 </template>
 

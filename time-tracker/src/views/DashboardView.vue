@@ -18,8 +18,16 @@ interface TrackingData {
 const trackings = ref<TrackingData[]>([]);
 
 async function getTrackings() {
-  const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
-	trackings.value = data as TrackingData[];
+  const sessionStorageTrackings = sessionStorage.getItem('trackings')
+  if (sessionStorageTrackings) {
+    trackings.value = JSON.parse(sessionStorageTrackings)
+  } else {
+    const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
+    trackings.value = data as TrackingData[];
+
+    // save trackings to session storage
+    sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
+  }
   
   // subribe to realtime updates
   supabase
@@ -28,6 +36,9 @@ async function getTrackings() {
     // update trackings
     const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
     trackings.value = data as TrackingData[];
+
+    // save trackings to session storage
+    sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
     })
     .subscribe()
 }
