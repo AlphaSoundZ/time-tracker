@@ -108,4 +108,19 @@ export class Track {
       return { data: null, error: 'No tracking to update' }
     }
   }
+  
+  async getTitles() {
+    const user: any = await this.checkSession();
+    if (!user) return { data: null, error: 'User not logged in' }
+
+    const { data: selectData, error: selectError } = await this.supabase.from('titles').select("title, amount, last_use").eq('user', user?.id)
+
+    console.log(selectData)
+
+    if (selectData && selectData.length > 0) {
+      return { data: selectData, error: null }
+    } else {
+      return { data: null, error: null }
+    }
+  }
 }
