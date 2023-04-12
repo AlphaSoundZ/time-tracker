@@ -7,6 +7,7 @@ import { format } from 'path';
 import { userInfo } from 'os';
 
 import topbar from 'topbar'
+import { Track } from '@/utils/track';
 
 interface TrackingData {
 	id: number;
@@ -16,10 +17,12 @@ interface TrackingData {
 }
 
 const trackings = ref<TrackingData[]>([]);
+const trackingGroups = ref<TrackingData[][]>([]);
 
 async function getTrackings() {
+  // get trackings
   const sessionStorageTrackings = sessionStorage.getItem('trackings')
-  if (sessionStorageTrackings) {
+  if (sessionStorageTrackings && sessionStorageTrackings !== '[]') {
     trackings.value = JSON.parse(sessionStorageTrackings)
   } else {
     const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
@@ -28,6 +31,20 @@ async function getTrackings() {
     // save trackings to session storage
     sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
   }
+
+  // get grouped trackings
+  const sessionStorageGroupedTrackings = sessionStorage.getItem('groupedTrackings')
+  if (sessionStorageGroupedTrackings && sessionStorageGroupedTrackings !== '[]') {
+    trackingGroups.value = JSON.parse(sessionStorageGroupedTrackings)
+  }
+
+  // TODO: add subscribe to grouped trackings -> then put this in else statement
+  const track = new Track(supabase)
+  const { data } = await track.getTrackingGroups()
+  trackingGroups.value = data
+
+  // save trackings to session storage
+  sessionStorage.setItem('groupedTrackings', JSON.stringify(data))
   
   // subribe to realtime updates
   supabase
@@ -107,8 +124,6 @@ onMounted(async () => {
       topbar.hide()
     })
   }
-
-
 })
 
 </script>
@@ -116,7 +131,7 @@ onMounted(async () => {
 <template>
   <div class="container">
     <h1>Dashboard</h1>
-    <div v-if="trackings.length !== 0">
+    <div v-if="trackings.length !== 0" hidden>
       <table class="table">
         <thead>
           <tr>
@@ -154,6 +169,36 @@ onMounted(async () => {
           </tr>
         </tfoot>
       </table>
+    </div>
+
+    <div v-if="trackingGroups.length !== 0">
+      <div class="groups" v-for="group in trackingGroups">
+        <br>
+        <h2>{{ group[0].title }} on {{ group[0].end ? new Date(group[0].end).toDateString() : '' }} ({{
+                  format(group
+                    .map((item: any) => {
+                      if (!item.end) return 0
+                      return new Date(item.end).getTime() - new Date(item.start).getTime()
+                    })
+                    .reduce((a: any, b: any) => a + b, 0))
+                }})</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Start</th>
+              <th>End</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in group" :key="item.id">
+              <td>{{ formatTime(item.start) }}</td>
+              <td>{{ item.end ? formatTime(item.end) : "" }}</td>
+              <td>{{ duration(item) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="trackings.length === 0" class="title">

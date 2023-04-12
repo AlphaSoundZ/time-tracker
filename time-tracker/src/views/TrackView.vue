@@ -4,8 +4,15 @@
 
         <!-- tracking title textfield -->
         <div class="tracking-container">
-          <div class="tracking-title-container">
-            <input autocomplete="off" class="tracking-title" type="text" placeholder="Title" id="titleInput" @change="updateTitle">
+          <div class="autocomplete">
+            <div class="tracking-title-container">
+              <input autocomplete="off" class="tracking-title" type="text" placeholder="Title" id="titleInput" @change="updateTitle" @focusin="updateAutocompletion" @keyup="updateAutocompletion">
+            </div>
+            <div class="autocomplete-items">
+              <div v-for="item in autocompletionItems" @click="selectAutocompleteItem(item)">
+                {{ item.title }} <br><p style="font-size: small;">{{ new Date(item.last_use).toLocaleDateString() }}</p>
+              </div>
+            </div>
           </div>
           <h3 class="tracking-time" id="trackingTime">{{ trackingTime }}</h3>
         </div>
@@ -14,6 +21,8 @@
 </template>
 
 <script lang="ts">
+
+
 import { ref } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 
@@ -22,15 +31,21 @@ import { Track } from '@/utils/track'
 import topbar from 'topbar'
 
 let intervalType: any = null
+let trackingSubscription: any = null
 
-let subscription: any = null
+interface TitleData {
+  title: string;
+  amount: number;
+  last_use: string | number | Date;
+}
 
 export default {
     name: 'TrackView',
     data() {
         return {
             trackingTime: '',
-            intervalId: intervalType
+            intervalId: intervalType,
+            autocompletionItems: ref<TitleData[]>([]),
         }
     },
     methods: {
@@ -112,6 +127,9 @@ export default {
           if (data.error) {
             console.log(data.error)
           }
+
+          // update autocompletion items
+          this.fetchAutocompletionItems()
 
           console.log("tracking stopped!")
           return
@@ -204,7 +222,62 @@ export default {
         // sessionStorage of tracking title
         sessionStorage.setItem('trackingTitle', titleInput.value)
         
-        const result = await track.update({title: titleInput.value}, null)
+        if (this.isIntervalRunning())
+          await track.update({title: titleInput.value}, null)
+      },
+      async updateAutocompletion() {
+        
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
+
+
+        if (!sessionStorage.getItem('autocompletionItems'))
+          await this.fetchAutocompletionItems()
+        
+        const inputString = titleInput.value.toLowerCase()
+        const allItems = JSON.parse(sessionStorage.getItem('autocompletionItems') || '[]')
+
+        // check if input is empty
+        if (titleInput.value.length == 0) {
+          // get latest title
+          this.autocompletionItems = allItems.slice(0, 1)
+          return
+        }
+
+        // check if there is a match
+        const matches = allItems.filter((item: TitleData) => {
+          return item.title.toLowerCase().includes(inputString)
+        })
+
+        // sort matches by amount
+        matches.sort((a: TitleData, b: TitleData) => {
+          return b.amount - a.amount
+        })
+
+        // limit matches to 5
+        this.autocompletionItems = matches.slice(0, 3)
+      },
+      selectAutocompleteItem(item: TitleData) {
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
+
+        // read data from autocomplete item
+        const title = item.title
+
+        titleInput.value = title as string
+        this.updateTitle()
+
+        // close autocomplete
+        this.autocompletionItems = []
+      },
+      async fetchAutocompletionItems() {
+        const track = new Track(supabase)
+        const data = await track.getTitles()
+        if (data.error) {
+          console.log(data.error)
+          return
+        }
+
+        // set session storage
+        sessionStorage.setItem('autocompletionItems', JSON.stringify(data.data))
       }
     },
     setup() {
@@ -218,24 +291,46 @@ export default {
     },
     async mounted() {
       const track = new Track(supabase)
-      const { data, error } = await track.getCurrentTracking()
-      const date = data?.start ? new Date(data.start) : null
+      await track.getCurrentTracking().then((response) => {
+        const date = response.data?.start ? new Date(response.data.start) : null
+  
+        if (response.error) {
+          console.log(response.error)
+          topbar.hide()
+          return
+        }
+        if (!date) {
+          this.trackingTime = '00:00:00'
+        }
 
-      if (error) {
-        console.log(error)
-        topbar.hide()
-        return
-      }
+        this.updateTracking(response.data)
+      })
 
-      if (!date) {
-        this.trackingTime = '00:00:00'
-      }
+      // fetch titles for autocompletion
+      await track.getTitles().then((response) => {
+        if (response.error) {
+          console.log(response.error)
+          return
+        }
 
-      this.updateTracking(data)
+        // set session storage
+        sessionStorage.setItem('autocompletionItems', JSON.stringify(response.data))
+      })
 
-      subscription = supabase
+      // event listener for clicking changes
+      document.addEventListener("click", (e) => {
+        // check if click was outside of title input
+        const titleInput = document.getElementById('titleInput') as HTMLInputElement
+        
+        if (e.target != titleInput) {
+          // close autocomplete
+          this.autocompletionItems = []
+        }
+      });
+
+      trackingSubscription = supabase
         .channel('public:trackings')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings'}, async (payload) => {
           // only new values
           this.updateTracking(payload.new)
         })
@@ -310,6 +405,51 @@ input:focus {
   padding: 0.5rem;
   font-size: 1.5rem;
   font-weight: 500;
+}
+
+/* autocompletion */
+
+.autocomplete {
+  position: relative;
+  display: inline-block;
+  /* width: 100%; */
+}
+
+.autocomplete-items {
+  position: absolute;
+  z-index: 99;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: hidden;
+  border: 1px solid;
+  border-top: none;
+  border-radius: 0 0 0.25rem 0.25rem;
+  border-color: hsla(160, 100%, 37%, 1);
+  background: hsla(160, 100%, 37%, 0.2);
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+}
+
+.autocomplete-items:empty {
+  border: none; /* Alle Grenzen entfernen, wenn die Dropdown-Liste leer ist */
+}
+
+.autocomplete-items div {
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: 0.4s;
+}
+
+.autocomplete-items div:hover {
+  background-color: hsla(160, 100%, 37%, 0.2);
+}
+
+.autocomplete-active {
+  background-color: #e9e9e9 !important;
+  color: #000;
 }
 
 </style>

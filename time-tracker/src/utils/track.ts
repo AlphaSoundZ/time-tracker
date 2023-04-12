@@ -115,10 +115,41 @@ export class Track {
 
     const { data: selectData, error: selectError } = await this.supabase.from('titles').select("title, amount, last_use").eq('user', user?.id)
 
-    console.log(selectData)
-
     if (selectData && selectData.length > 0) {
       return { data: selectData, error: null }
+    } else {
+      return { data: null, error: null }
+    }
+  }
+
+  async getTrackingGroups(data: Object | null = null) {
+    const user: any = await this.checkSession();
+    if (!user) return { data: null, error: 'User not logged in' }
+
+    let selectData: any;
+
+    if (data) {
+      selectData = data
+    } else {
+      const { data: requestData, error: selectError } = await this.supabase.from('trackings').select("title, start, end").eq('user', user?.id).not('end', 'is', null).order('start', { ascending: false })
+      selectData = requestData
+    }
+
+    let groups: any = []
+
+    if (selectData && selectData.length > 0) {
+      // create groups by same tracking titles in a row
+      for (let i = 0; i < selectData.length; i++) {
+        const element = selectData[i];
+        const last_element = selectData[i - 1] || null;
+
+        if (last_element && element.title == last_element.title && new Date(element.end).toLocaleDateString() == new Date(last_element.end).toLocaleDateString())
+          groups[groups.length - 1].push(element)
+        else
+          groups.push([element])
+      }
+
+      return { data: groups, error: null }
     } else {
       return { data: null, error: null }
     }
