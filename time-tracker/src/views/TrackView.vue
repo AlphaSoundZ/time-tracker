@@ -5,7 +5,7 @@
         <!-- tracking title textfield -->
         <div class="tracking-container">
           <div class="tracking-title-container">
-            <input class="tracking-title" type="text" placeholder="Title" id="titleInput" @change="updateTitle">
+            <input autocomplete="off" class="tracking-title" type="text" placeholder="Title" id="titleInput" @change="updateTitle">
           </div>
           <h3 class="tracking-time" id="trackingTime">{{ trackingTime }}</h3>
         </div>
