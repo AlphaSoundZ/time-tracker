@@ -3,12 +3,17 @@
     <h1>Welcome {{ user_name }}!</h1>
     <a href="#" id="loginBtn" style="display: none">Google Sign-In</a>
     <a href="#" id="logoutBtn" style="display: none">Logout</a>
+    <br>
+    <trackingBar />
   </div>
+
 </template>
 
 <script lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient'
+
+import trackingBar from '@/components/trackingBar.vue'
 
 import topbar from 'topbar'
 
@@ -73,6 +78,9 @@ export default {
     this.updateUI().then(() => {
       topbar.hide()
     })
+  },
+  components: {
+    trackingBar
   }
 }
 </script>

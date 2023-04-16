@@ -1,15 +1,39 @@
+import { ref } from "vue";
+
+interface objectData {
+  title?: string | null,
+  start?: string | null,
+  end?: string | null,
+  tags?: number[] | null
+}
+
 export class Track {
   supabase: any;
-  currentTrackingId: string | null;
+  currentTracking: any;
+  user: any;
 
   constructor(supabase: any) {
     this.supabase = supabase;
-    this.currentTrackingId = null;
+    this.currentTracking = null;
+  }
+
+  async initialize() {
+    const { data: data, error: selectError } = await this.supabase.from('trackings').select().is('end', null)
+
+    if (data && data.length > 0) {
+      this.currentTracking = data[0]
+    } else {
+      this.currentTracking = null
+    }
+
+    this.user = await this.checkSession();
+  }
+
+  async refresh() {
+    return await this.initialize()
   }
   
-  async add(title: string | null, start: Date, end: Date | null) {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
+  async start(title: string | null, start: Date, end: Date | null = null, tags: [number] | null = null) {
 
     const formattedStart = start.toISOString()
     const formattedEnd = end?.toISOString() || null
@@ -19,40 +43,36 @@ export class Track {
         title: title,
         start: formattedStart,
         end: formattedEnd,
-        user: user?.id
+        user: this.user?.id
       }
-    ])
+    ]).select('*')
 
     // update current tracking id
-    if (insertData && insertData.length == 1) {
-      this.currentTrackingId = insertData[0].id
-    } else {
-      this.currentTrackingId = null
+    this.currentTracking = (insertData && insertData.length == 1) ? insertData[0] : null
+
+    // add tags
+    if (tags && tags.length > 0 && this.currentTracking?.id) {
+      const { data: insertData_tags, error: insertError_tags } = await this.supabase.from('tracking_tags').insert(
+        tags.map((tag: any) => {
+          return {
+            tag: tag,
+            tracking: this.currentTracking?.id
+          }
+        })
+      )
     }
-    
+
     return { data: insertData, error: insertError }
   }
 
-  async start(title: string | null, start: Date) {
-    return await this.add(title, start, null)
-  }
-
   async stop(end: Date) {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
-
     const formattedEnd = end.toISOString()
 
-    const { data: selectData, error: selectError } = await this.supabase.from('trackings').select('id').eq('user', user?.id).is('end', null)
-    if (selectData && selectData.length == 1) {
-      const { data: updateData, error: updateError } = await this.supabase.from('trackings').update({ end: formattedEnd }).eq('id', selectData[0].id)
+    if (this.currentTracking?.id) {
+      const { data: updateData, error: updateError } = await this.supabase.from('trackings').update({ end: formattedEnd }).eq('id', this.currentTracking?.id)
 
       // update current tracking id
-      if (updateData && updateData.length == 1) {
-        this.currentTrackingId = updateData[0].id
-      } else {
-        this.currentTrackingId = null
-      }
+      this.currentTracking = null
       
       return { data: updateData, error: updateError }
     } else {
@@ -60,31 +80,9 @@ export class Track {
     }
   }
 
-  async getCurrentStartTime() {
-    const user: any = await this.checkSession();
-    if (!user) return { date: null, error: 'User not logged in' }
-
-    const { data: selectData, error: selectError } = await this.supabase.from('trackings').select('start').eq('user', user?.id).is('end', null)
-
-    if (selectData && selectData.length > 0) {
-      const start = new Date(selectData[0].start)
-      return { date: start, error: null }
-    } else {
-      return { date: null, error: null }
-    }
-  }
-
-  async getCurrentTracking() {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
-
-    const { data: selectData, error: selectError } = await this.supabase.from('trackings').select().eq('user', user?.id).is('end', null)
-
-    if (selectData && selectData.length > 0) {
-      return { data: selectData[0], error: null }
-    } else {
-      return { data: null, error: null }
-    }
+  getCurrentTracking() {
+    if (this.currentTracking) return { data: this.currentTracking, error: null }
+    else return { data: null, error: null }
   }
 
   async checkSession() {
@@ -94,13 +92,30 @@ export class Track {
     else return data.session?.user
   }
 
-  async update(object: Object, id: string | null) {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
-
-    id = id || this.currentTrackingId || (await this.getCurrentTracking()).data?.id
+  async update(object: objectData, id: string | null) {
+    id = id || this.currentTracking?.id || (await this.getCurrentTracking()).data?.id
 
     if (id) {
+      // check if Object contains tags
+      if (object.hasOwnProperty('tags')) {
+        // remove tags from object
+        const tags = object.tags || []
+        delete object.tags
+        
+        const { data: deleteData_tags, error: deleteError_tags } = await this.supabase.from('tracking_tags').delete().eq('tracking', id)
+        
+        if (tags.length > 0) {
+          const { data: insertData_tags, error: insertError_tags } = await this.supabase.from('tracking_tags').upsert(
+            tags.map((tag: any) => {
+              return {
+                tag: tag,
+                tracking: id
+              }
+            }), { onConflict: 'tag,tracking', noUpdate: true }
+          )
+        }
+      }
+      
       const { data: updateData, error: updateError } = await this.supabase.from('trackings').update(object).eq('id', id)
       
       return { data: updateData, error: updateError }
@@ -110,10 +125,7 @@ export class Track {
   }
   
   async getTitles() {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
-
-    const { data: selectData, error: selectError } = await this.supabase.from('titles').select("title, amount, last_use").eq('user', user?.id)
+    const { data: selectData, error: selectError } = await this.supabase.from('titles').select("title, amount, last_use").eq('user', this.user?.id)
 
     if (selectData && selectData.length > 0) {
       return { data: selectData, error: null }
@@ -123,15 +135,12 @@ export class Track {
   }
 
   async getTrackingGroups(data: Object | null = null) {
-    const user: any = await this.checkSession();
-    if (!user) return { data: null, error: 'User not logged in' }
-
     let selectData: any;
 
     if (data) {
       selectData = data
     } else {
-      const { data: requestData, error: selectError } = await this.supabase.from('trackings').select("title, start, end").eq('user', user?.id).not('end', 'is', null).order('start', { ascending: false })
+      const { data: requestData, error: selectError } = await this.supabase.from('trackings').select("title, start, end").not('end', 'is', null).order('start', { ascending: false })
       selectData = requestData
     }
 
@@ -150,6 +159,17 @@ export class Track {
       }
 
       return { data: groups, error: null }
+    } else {
+      return { data: null, error: null }
+    }
+  }
+
+  async getTags() {
+    const { data: selectData, error: selectError } = await this.supabase.from('tags').select("title, id")
+    
+
+    if (selectData && selectData.length > 0) {
+      return { data: selectData, error: null }
     } else {
       return { data: null, error: null }
     }

@@ -20,6 +20,7 @@ const trackings = ref<TrackingData[]>([]);
 const trackingGroups = ref<TrackingData[][]>([]);
 
 async function getTrackings() {
+  /*
   // get trackings
   const sessionStorageTrackings = sessionStorage.getItem('trackings')
   if (sessionStorageTrackings && sessionStorageTrackings !== '[]') {
@@ -31,6 +32,7 @@ async function getTrackings() {
     // save trackings to session storage
     sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
   }
+  */
 
   // get grouped trackings
   const sessionStorageGroupedTrackings = sessionStorage.getItem('groupedTrackings')
@@ -45,7 +47,7 @@ async function getTrackings() {
 
   // save trackings to session storage
   sessionStorage.setItem('groupedTrackings', JSON.stringify(data))
-  
+  /*
   // subribe to realtime updates
   supabase
   .channel('any')
@@ -58,6 +60,7 @@ async function getTrackings() {
     sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
     })
     .subscribe()
+  */
 }
 
 function duration(tracking: TrackingData) {
