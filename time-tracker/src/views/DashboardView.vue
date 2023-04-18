@@ -210,7 +210,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="trackings.length === 0" class="title">
+    <div v-if="trackingGroups.length === 0" class="title">
       <h2>No trackings yet</h2>
     </div>
 
