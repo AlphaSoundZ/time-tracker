@@ -8,12 +8,14 @@ import { userInfo } from 'os';
 
 import topbar from 'topbar'
 import { Track } from '@/utils/track';
+import type { SourceMapGenerator } from 'source-map';
 
 interface TrackingData {
 	id: number;
 	title: string;
 	start: string | number | Date;
 	end?: string | number | Date;
+  tags: string[];
 }
 
 const trackings = ref<TrackingData[]>([]);
@@ -44,6 +46,8 @@ async function getTrackings() {
   const track = new Track(supabase)
   const { data } = await track.getTrackingGroups()
   trackingGroups.value = data
+
+  console.log(data)
 
   // save trackings to session storage
   sessionStorage.setItem('groupedTrackings', JSON.stringify(data))
@@ -191,6 +195,7 @@ onMounted(async () => {
               <th>Start</th>
               <th>End</th>
               <th>Duration</th>
+              <th>Tags</th>
             </tr>
           </thead>
           <tbody>
@@ -198,6 +203,7 @@ onMounted(async () => {
               <td>{{ formatTime(item.start) }}</td>
               <td>{{ item.end ? formatTime(item.end) : "" }}</td>
               <td>{{ duration(item) }}</td>
+              <td>{{ item.tags.join(', ') }}</td>
             </tr>
           </tbody>
         </table>

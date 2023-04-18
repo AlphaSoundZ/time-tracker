@@ -140,7 +140,7 @@ export class Track {
     if (data) {
       selectData = data
     } else {
-      const { data: requestData, error: selectError } = await this.supabase.from('trackings').select("title, start, end").not('end', 'is', null).order('start', { ascending: false })
+      const { data: requestData, error: selectError } = await this.supabase.from('trackings_parent').select()
       selectData = requestData
     }
 
