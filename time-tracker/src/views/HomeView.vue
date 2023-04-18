@@ -74,9 +74,6 @@ export default {
     this.updateUI().then(() => {
       topbar.hide()
     })
-  },
-  components: {
-    trackingBar
   }
 }
 </script>
