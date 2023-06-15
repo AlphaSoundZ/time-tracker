@@ -39,7 +39,7 @@ export default {
 
       if (this.isIntervalRunning()) await this.track.update({ title: trackingTitle.value }, null)
     },
-    async updateItems() {
+    async updateItems() { // update items (titles) in dropdown menu
       const trackingTitle = document.getElementById('trackingTitle') as HTMLInputElement
 
       if (!sessionStorage.getItem('titles')) await this.fetchItems()
@@ -231,11 +231,14 @@ export default {
           console.log('tracking has changed to running')
           this.startInterval(startDate)
 
+          // update current tracking
+          this.track.updateCurrentTracking(params)
+
           // change button text
           startButton.style.display = 'none'
           stopButton.style.display = 'block'
 
-        } else if (!startDate && endDate && this.isIntervalRunning()) {
+        } else if (endDate && this.isIntervalRunning()) {
           // tracking has changed to stopped
           console.log('tracking has changed to stopped')
           // reset tracking time and title
@@ -418,7 +421,6 @@ export default {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'trackings' },
         async (payload) => {
-          // only new values
           this.updateTracking(payload.new)
         }
       )

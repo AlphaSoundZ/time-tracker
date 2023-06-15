@@ -28,10 +28,6 @@ export class Track {
 
     this.user = await this.checkSession();
   }
-
-  async refresh() {
-    return await this.initialize()
-  }
   
   async start(title: string | null, start: Date, end: Date | null = null, tags: [number] | null = null) {
 
@@ -173,5 +169,9 @@ export class Track {
     } else {
       return { data: null, error: null }
     }
+  }
+
+  async updateCurrentTracking(tracking: any) {
+    this.currentTracking = tracking
   }
 }

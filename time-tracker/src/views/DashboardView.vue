@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 //import { createClient } from "@supabase/supabase-js";
 import { supabase } from '../lib/supabaseClient'
 import { track } from '@vue/reactivity';
-import { format } from 'path';
 import { userInfo } from 'os';
 
 import topbar from 'topbar'
