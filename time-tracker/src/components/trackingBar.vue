@@ -25,6 +25,7 @@ export default {
       trackingTime: '',
       intervalId: <any>(null),
       trackingSubscription: <any>(null),
+      tagSubscription: <any>(null),
       tagsDropdownOpen: false,
       titleDropdownOpen: false,
       track: new Track(supabase)
@@ -307,8 +308,15 @@ export default {
         console.log(activeTags)
 
         // update tags
-        await this.track.update({ tags: activeTags }, null) // tags looks like this: [1, 2, 3]
+        await this.track.update({ tags: activeTags }, null) // tags look like this: [1, 2, 3]
       }
+    },
+    updateTags(tag_id: number, active: boolean) {
+      // TODO: update tags status
+      //this.tags[this.tags.findIndex((tag: TagData) => tag.id === tag_id)].active = active
+
+
+      sessionStorage.setItem('tags', JSON.stringify(this.tags))
     },
   },
   setup() {
@@ -422,6 +430,21 @@ export default {
         { event: '*', schema: 'public', table: 'trackings' },
         async (payload) => {
           this.updateTracking(payload.new)
+        }
+      )
+      .subscribe()
+
+    this.tagSubscription = supabase
+      .channel('public:tracking_tags')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tracking_tags' },
+        async (payload) => {
+          if (payload.new) {
+            this.updateTags((payload.new as { tracking: number; tag: number }).tag, true)
+          } else if (payload.old) {
+            this.updateTags((payload.old as { tracking: number; tag: number }).tag, false)
+          }
         }
       )
       .subscribe()

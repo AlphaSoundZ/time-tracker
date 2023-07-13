@@ -21,27 +21,12 @@ const trackings = ref<TrackingData[]>([]);
 const trackingGroups = ref<TrackingData[][]>([]);
 
 async function getTrackings() {
-  /*
-  // get trackings
-  const sessionStorageTrackings = sessionStorage.getItem('trackings')
-  if (sessionStorageTrackings && sessionStorageTrackings !== '[]') {
-    trackings.value = JSON.parse(sessionStorageTrackings)
-  } else {
-    const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
-    trackings.value = data as TrackingData[];
-
-    // save trackings to session storage
-    sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
-  }
-  */
-
   // get grouped trackings
   const sessionStorageGroupedTrackings = sessionStorage.getItem('groupedTrackings')
   if (sessionStorageGroupedTrackings && sessionStorageGroupedTrackings !== '[]') {
     trackingGroups.value = JSON.parse(sessionStorageGroupedTrackings)
   }
 
-  // TODO: add subscribe to grouped trackings -> then put this in else statement
   const track = new Track(supabase)
   const { data } = await track.getTrackingGroups()
   trackingGroups.value = data
@@ -50,20 +35,6 @@ async function getTrackings() {
 
   // save trackings to session storage
   sessionStorage.setItem('groupedTrackings', JSON.stringify(data))
-  /*
-  // subribe to realtime updates
-  supabase
-  .channel('any')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
-    // update trackings
-    const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
-    trackings.value = data as TrackingData[];
-
-    // save trackings to session storage
-    sessionStorage.setItem('trackings', JSON.stringify(trackings.value))
-    })
-    .subscribe()
-  */
 }
 
 function duration(tracking: TrackingData) {
@@ -126,6 +97,28 @@ onMounted(async () => {
   // if user is not logged in, return
   if (data) {
     const user = data.session?.user;
+
+    // subribe to realtime updates
+    console.log("subscribe to trackings")
+    supabase
+    .channel('any')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'trackings' }, async (payload) => {
+      console.log("update trackings")
+
+      // update trackings
+      const { data } = await supabase.from('trackings').select().order('start', { ascending: false })
+      trackings.value = data as TrackingData[];
+
+      // update grouped trackings
+      const track = new Track(supabase)
+      const { data: groupedTrackings } = await track.getTrackingGroups()
+      trackingGroups.value = groupedTrackings
+
+      // save trackings to session storage
+      sessionStorage.setItem('groupedTrackings', JSON.stringify(groupedTrackings))
+      })
+      .subscribe()
+    
     getTrackings().then(() => {
       topbar.hide()
     })
